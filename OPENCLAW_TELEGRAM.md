@@ -73,7 +73,17 @@ Resolve common Traditional Chinese names before running the adapter.
 
 If a company name is not in this table, search/resolve the ticker first. Do not guess silently when multiple listed companies match.
 
-When an LLM or human resolves an unknown alias, persist it immediately so future runs do not need to search again:
+When an LLM or human resolves an unknown alias, persist it immediately so future runs do not need to search again. Prefer the one-step chat runner flow:
+
+```bash
+scripts/openclaw_chat_analyze.py "分析 <user text>" \
+  --resolved-ticker "<resolved ticker>" \
+  --canonical "<company name>" \
+  --alias-source llm \
+  --format summary
+```
+
+Or persist without running analysis:
 
 ```bash
 scripts/openclaw_alias.py add \

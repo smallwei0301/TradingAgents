@@ -16,6 +16,11 @@ import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+from scripts.openclaw_alias import add_alias, resolve_alias
+
 ADAPTER = REPO_ROOT / "scripts" / "openclaw_analyze.sh"
 
 _TICKER_RE = re.compile(r"^[A-Za-z0-9._\-\^]+$")
@@ -58,6 +63,21 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--checkpoint", action="store_true")
     parser.add_argument("--clear-checkpoints", action="store_true")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--resolved-ticker",
+        default=None,
+        help="Ticker resolved externally/LLM for an unknown alias. Persists alias before running.",
+    )
+    parser.add_argument(
+        "--canonical",
+        default=None,
+        help="Canonical company/security name to store with --resolved-ticker.",
+    )
+    parser.add_argument(
+        "--alias-source",
+        default="llm",
+        help="Source label stored when --resolved-ticker persists an alias. Default: llm.",
+    )
     return parser.parse_args()
 
 
@@ -66,9 +86,27 @@ def main() -> int:
     target, model_hint = parse_chat_request(args.message)
     deep_model = model_hint or args.deep_model or "gpt-5.5"
 
+    run_target = target
+    if args.resolved_ticker:
+        add_alias(
+            alias=target,
+            ticker=args.resolved_ticker,
+            canonical=args.canonical or target,
+            source=args.alias_source,
+        )
+        # Use the freshly resolved ticker for this subprocess too. The alias is
+        # persisted for future runs, but tests and alternate alias paths should
+        # not require the child process to re-read the same store.
+        run_target = args.resolved_ticker
+    elif resolve_alias(target) is None and re.search(r"[\u4e00-\u9fff]", target):
+        raise SystemExit(
+            f"Unknown alias: {target!r}. Resolve the ticker first, then rerun with "
+            f"--resolved-ticker <TICKER> --canonical <NAME> to persist it."
+        )
+
     cmd = [
         str(ADAPTER),
-        "--ticker", target,
+        "--ticker", run_target,
         "--date", args.date,
         "--provider", args.provider,
         "--quick-model", args.quick_model,
