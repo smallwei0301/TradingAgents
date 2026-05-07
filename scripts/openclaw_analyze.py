@@ -75,9 +75,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--debug", action="store_true", help="Pretty-print LangChain messages while running.")
     parser.add_argument(
         "--format",
-        choices=("markdown", "json"),
+        choices=("markdown", "json", "summary"),
         default="markdown",
-        help="Stdout format. Default: markdown.",
+        help="Stdout format. Use summary for chat surfaces. Default: markdown.",
     )
     parser.add_argument(
         "--dry-run",
@@ -167,6 +167,34 @@ def compact_state(final_state: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def extract_executive_summary(text: str) -> str:
+    """Extract the Portfolio Manager executive summary when present."""
+    if not text:
+        return ""
+    marker = "**Executive Summary**:"
+    start = text.find(marker)
+    if start == -1:
+        return text.strip().split("\n\n", 1)[0].strip()
+    start += len(marker)
+    next_marker = text.find("\n\n**", start)
+    if next_marker == -1:
+        return text[start:].strip()
+    return text[start:next_marker].strip()
+
+
+def render_summary(payload: dict[str, Any]) -> str:
+    pm_decision = payload["state"].get("portfolio_manager_decision") or ""
+    executive_summary = extract_executive_summary(pm_decision)
+    lines = [
+        f"TradingAgents：{payload['ticker']} / {payload['date']}",
+        f"Decision：{payload['decision']}",
+    ]
+    if executive_summary:
+        lines.extend(["", executive_summary])
+    lines.extend(["", f"完整報告：{payload['report_path']}"])
+    return "\n".join(lines).rstrip() + "\n"
+
+
 def render_markdown(payload: dict[str, Any]) -> str:
     sections = [
         f"# TradingAgents Analysis: {payload['ticker']}",
@@ -206,6 +234,7 @@ def save_outputs(payload: dict[str, Any], report_dir: Path) -> None:
         encoding="utf-8",
     )
     (report_dir / "complete_report.md").write_text(render_markdown(payload), encoding="utf-8")
+    (report_dir / "chat_summary.md").write_text(render_summary(payload), encoding="utf-8")
 
 
 def main() -> int:
@@ -265,6 +294,8 @@ def main() -> int:
 
     if args.format == "json":
         print(json.dumps(payload, ensure_ascii=False, indent=2))
+    elif args.format == "summary":
+        print(render_summary(payload))
     else:
         print(render_markdown(payload))
     return 0

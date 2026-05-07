@@ -51,7 +51,7 @@ Output reports are written to:
 
 The adapter supports:
 
-- `--format markdown|json`
+- `--format markdown|json|summary` (`summary` is best for chat replies)
 - `--analysts market,social,news,fundamentals`
 - `--research-depth 1`
 - `--checkpoint`
