@@ -9,6 +9,8 @@ Allow chat requests such as:
 - `分析 TSLA`
 - `分析 日月光投控`
 - `分析 台積電`
+- `分析 台積電 昨天`
+- `分析 NVDA 2026-05-06`
 - `用 gpt-5.5 分析 NVDA`
 
 OpenClaw should resolve the ticker, run the adapter, then return the `summary` output plus report paths.
@@ -39,6 +41,7 @@ scripts/openclaw_analyze.sh \
 ```
 
 If the user does not specify a date, use today's date in the OpenClaw session timezone.
+The chat runner also understands common inline date hints: `今天` / `今日`, `昨天` / `昨日`, `前天`, and `YYYY-MM-DD`.
 
 ## Output paths
 

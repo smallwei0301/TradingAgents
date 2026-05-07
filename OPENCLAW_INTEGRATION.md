@@ -60,6 +60,16 @@ The adapter mirrors the CLI's streaming path (`graph.graph.stream(...)`),
 `save_report_to_disk()` call. `summary.json` and `chat_summary.md` are additional
 OpenClaw convenience files written inside `reports/`.
 
+For raw chat text, use the chat runner:
+
+```bash
+scripts/openclaw_chat_analyze.py "分析 日月光投控" --date 2026-05-07 --dry-run
+scripts/openclaw_chat_analyze.py "分析 台積電 昨天" --dry-run
+scripts/openclaw_chat_analyze.py "分析 NVDA 2026-05-06" --dry-run
+```
+
+The chat runner understands `今天` / `今日`, `昨天` / `昨日`, `前天`, and `YYYY-MM-DD` date hints.
+
 The adapter supports:
 
 - `--format markdown|json|summary` (`summary` is best for chat replies)
