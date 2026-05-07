@@ -8,7 +8,9 @@ chat commands, and cron jobs to run stock analysis reliably.
 
 - `scripts/openclaw_analyze.py` — OpenClaw adapter entrypoint
 - `scripts/openclaw_analyze.sh` — stable wrapper that prefers the repo-local `.venv`
+- `scripts/openclaw_alias.py` — persistent ticker alias manager
 - `.env.openclaw.example` — environment/secrets template
+- `OPENCLAW_ALIASES.json` — persistent natural-language ticker alias store
 - `OPENCLAW_TELEGRAM.md` — natural-language Telegram trigger and ticker alias guide
 
 ## Local setup

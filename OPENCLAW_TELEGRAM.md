@@ -43,6 +43,8 @@ The adapter mirrors the repository CLI layout:
 
 ## Ticker aliases
 
+Aliases live in `OPENCLAW_ALIASES.json`. The adapter reads this file automatically, so the caller may pass either a ticker or a known natural-language alias to `--ticker`.
+
 Resolve common Traditional Chinese names before running the adapter.
 
 | User text | Ticker | Notes |
@@ -60,6 +62,23 @@ Resolve common Traditional Chinese names before running the adapter.
 | Meta / Facebook / META | `META` | US stock |
 
 If a company name is not in this table, search/resolve the ticker first. Do not guess silently when multiple listed companies match.
+
+When an LLM or human resolves an unknown alias, persist it immediately so future runs do not need to search again:
+
+```bash
+scripts/openclaw_alias.py add \
+  --alias "<user text>" \
+  --ticker "<resolved ticker>" \
+  --canonical "<company name>" \
+  --source llm
+```
+
+Verification:
+
+```bash
+scripts/openclaw_alias.py resolve "<user text>"
+scripts/openclaw_analyze.sh --ticker "<user text>" --date <YYYY-MM-DD> --dry-run
+```
 
 ## Chat response pattern
 

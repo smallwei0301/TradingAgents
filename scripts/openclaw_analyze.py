@@ -22,6 +22,8 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from scripts.openclaw_alias import resolve_alias
+
 try:
     from dotenv import load_dotenv
 except ImportError:  # pragma: no cover - optional convenience only
@@ -465,7 +467,9 @@ def main() -> int:
         load_dotenv()
 
     args = parse_args()
-    ticker = args.ticker.strip().upper()
+    requested_ticker = args.ticker.strip()
+    alias_entry = resolve_alias(requested_ticker)
+    ticker = (alias_entry["ticker"] if alias_entry else requested_ticker).strip().upper()
     trade_date = validate_date(args.date)
     analysts = parse_analysts(args.analysts)
     config = build_config(args)
@@ -476,6 +480,8 @@ def main() -> int:
     if args.dry_run:
         dry_payload = {
             "ticker": ticker,
+            "requested_ticker": requested_ticker,
+            "alias": alias_entry,
             "date": trade_date,
             "analysts": analysts,
             "provider": config["llm_provider"],
@@ -507,6 +513,8 @@ def main() -> int:
 
     payload = {
         "ticker": ticker,
+        "requested_ticker": requested_ticker,
+        "alias": alias_entry,
         "date": trade_date,
         "decision": decision,
         "provider": config["llm_provider"],
