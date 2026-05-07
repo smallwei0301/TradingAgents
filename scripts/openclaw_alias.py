@@ -16,13 +16,15 @@ ALIASES_PATH = REPO_ROOT / "OPENCLAW_ALIASES.json"
 _TICKER_RE = re.compile(r"^[A-Za-z0-9._\-\^]+$")
 
 
-def load_aliases(path: Path = ALIASES_PATH) -> dict[str, Any]:
+def load_aliases(path: Path | None = None) -> dict[str, Any]:
+    path = path or ALIASES_PATH
     if not path.exists():
         return {"aliases": {}}
     return json.loads(path.read_text(encoding="utf-8"))
 
 
-def save_aliases(data: dict[str, Any], path: Path = ALIASES_PATH) -> None:
+def save_aliases(data: dict[str, Any], path: Path | None = None) -> None:
+    path = path or ALIASES_PATH
     path.write_text(
         json.dumps(data, ensure_ascii=False, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
