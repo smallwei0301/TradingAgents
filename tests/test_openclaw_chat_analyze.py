@@ -1,24 +1,34 @@
 import json
+from datetime import date
 
 import pytest
 
 from scripts import openclaw_alias
-from scripts.openclaw_chat_analyze import main, parse_chat_request
+from scripts.openclaw_chat_analyze import extract_date_hint, main, parse_chat_request
 
 
 @pytest.mark.unit
 @pytest.mark.parametrize(
-    ("message", "target", "model"),
+    ("message", "target", "model", "date_hint"),
     [
-        ("分析 日月光投控", "日月光投控", None),
-        ("請幫我分析 台積電", "台積電", None),
-        ("用 gpt-5.5 分析 NVDA", "NVDA", "gpt-5.5"),
-        ("NVDA", "NVDA", None),
-        ("日月光投控", "日月光投控", None),
+        ("分析 日月光投控", "日月光投控", None, None),
+        ("請幫我分析 台積電", "台積電", None, None),
+        ("用 gpt-5.5 分析 NVDA", "NVDA", "gpt-5.5", None),
+        ("NVDA", "NVDA", None, None),
+        ("日月光投控", "日月光投控", None, None),
+        ("分析 台積電 2026-05-06", "台積電", None, "2026-05-06"),
     ],
 )
-def test_parse_chat_request(message, target, model):
-    assert parse_chat_request(message) == (target, model)
+def test_parse_chat_request(message, target, model, date_hint):
+    assert parse_chat_request(message) == (target, model, date_hint)
+
+
+@pytest.mark.unit
+def test_extract_date_hint_supports_relative_words():
+    text, date_hint = extract_date_hint("分析 台積電 昨天", today=date(2026, 5, 7))
+
+    assert text == "分析 台積電"
+    assert date_hint == "2026-05-06"
 
 
 @pytest.mark.unit
