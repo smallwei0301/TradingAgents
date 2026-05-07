@@ -39,7 +39,7 @@ scripts/openclaw_analyze.sh \
   --date 2026-05-07 \
   --provider openai \
   --quick-model gpt-5.4-mini \
-  --deep-model gpt-5.4 \
+  --deep-model gpt-5.5 \
   --output-language 繁體中文
 ```
 

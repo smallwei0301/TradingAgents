@@ -31,7 +31,7 @@ from tradingagents.default_config import DEFAULT_CONFIG
 ANALYST_ORDER = ("market", "social", "news", "fundamentals")
 _TICKER_PATH_RE = re.compile(r"^[A-Za-z0-9._\-\^]+$")
 DEFAULT_PROVIDER_MODELS = {
-    "openai": ("gpt-5.4-mini", "gpt-5.4"),
+    "openai": ("gpt-5.4-mini", "gpt-5.5"),
     "google": ("gemini-3.1-flash", "gemini-3.1-pro"),
     "anthropic": ("claude-4.6-sonnet", "claude-4.6-sonnet"),
     "deepseek": ("deepseek-chat", "deepseek-reasoner"),
