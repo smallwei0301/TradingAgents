@@ -15,7 +15,17 @@ OpenClaw should resolve the ticker, run the adapter, then return the `summary` o
 
 ## Command pattern
 
-From the repo root:
+From the repo root, pass the raw chat message to the chat runner:
+
+```bash
+scripts/openclaw_chat_analyze.py "分析 日月光投控" \
+  --date <YYYY-MM-DD> \
+  --format summary
+```
+
+The chat runner extracts the target and forwards to the adapter.
+
+For direct ticker calls:
 
 ```bash
 scripts/openclaw_analyze.sh \
