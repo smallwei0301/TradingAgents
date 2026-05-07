@@ -43,15 +43,17 @@ scripts/openclaw_analyze.sh \
   --output-language 繁體中文
 ```
 
-Output reports are written to:
+Output is aligned with the repository CLI layout:
 
 ```text
-~/.tradingagents/logs/<TICKER>/<DATE>/openclaw_report/
+~/.tradingagents/logs/<TICKER>/<DATE>/message_tool.log
+~/.tradingagents/logs/<TICKER>/<DATE>/reports/
 ```
 
-`complete_report.md` and section folders are generated with the repository CLI's
-`save_report_to_disk()` function to keep the saved report format aligned with
-`tradingagents analyze`.
+The adapter mirrors the CLI's streaming path (`graph.graph.stream(...)`),
+`MessageBuffer` log decorators, incremental report-section writes, and final
+`save_report_to_disk()` call. `summary.json` and `chat_summary.md` are additional
+OpenClaw convenience files written inside `reports/`.
 
 The adapter supports:
 
@@ -59,6 +61,7 @@ The adapter supports:
 - `--analysts market,social,news,fundamentals`
 - `--research-depth 1`
 - `--checkpoint`
+- `--clear-checkpoints`
 - `--results-dir`, `--cache-dir`, `--memory-log-path`
 - `--dry-run`
 

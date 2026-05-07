@@ -14,6 +14,7 @@ import json
 import os
 import re
 import sys
+from functools import wraps
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cache-dir", default=None, help="Override TradingAgents cache directory.")
     parser.add_argument("--memory-log-path", default=None, help="Override persistent decision log path.")
     parser.add_argument("--checkpoint", action="store_true", help="Enable checkpoint/resume.")
+    parser.add_argument("--clear-checkpoints", action="store_true", help="Delete all saved checkpoints before running.")
     parser.add_argument("--debug", action="store_true", help="Pretty-print LangChain messages while running.")
     parser.add_argument(
         "--format",
@@ -227,6 +229,224 @@ def render_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(sections).rstrip() + "\n"
 
 
+def run_cli_equivalent_analysis(
+    *,
+    ticker: str,
+    trade_date: str,
+    analysts: list[str],
+    config: dict[str, Any],
+) -> tuple[dict[str, Any], str, dict[str, Any], Path, Path]:
+    """Run the same non-interactive graph path used by ``tradingagents analyze``.
+
+    The repository CLI does not call ``TradingAgentsGraph.propagate()``. It
+    builds an initial state, calls ``graph.graph.stream(...)`` directly, writes
+    ``message_tool.log`` via ``MessageBuffer`` decorators, persists incremental
+    report sections under ``reports/``, then saves the final report through
+    ``save_report_to_disk()``. This function mirrors that path so OpenClaw's
+    adapter is operationally aligned with the repo CLI rather than merely using
+    the same graph core.
+    """
+
+    from cli.main import (
+        ANALYST_AGENT_NAMES,
+        classify_message_type,
+        message_buffer,
+        save_report_to_disk,
+        update_analyst_statuses,
+        update_research_team_status,
+    )
+    from cli.stats_handler import StatsCallbackHandler
+    from tradingagents.graph.trading_graph import TradingAgentsGraph
+
+    stats_handler = StatsCallbackHandler()
+    graph = TradingAgentsGraph(
+        selected_analysts=analysts,
+        debug=True,
+        config=config,
+        callbacks=[stats_handler],
+    )
+
+    message_buffer.init_for_analysis(analysts)
+
+    safe_ticker = safe_ticker_component(ticker)
+    results_dir = Path(config["results_dir"]) / safe_ticker / trade_date
+    results_dir.mkdir(parents=True, exist_ok=True)
+    report_dir = results_dir / "reports"
+    report_dir.mkdir(parents=True, exist_ok=True)
+    log_file = results_dir / "message_tool.log"
+    log_file.touch(exist_ok=True)
+
+    def save_message_decorator(obj, func_name):
+        func = getattr(obj, func_name)
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            func(*args, **kwargs)
+            timestamp, message_type, content = obj.messages[-1]
+            content = content.replace("\n", " ")
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"{timestamp} [{message_type}] {content}\n")
+
+        return wrapper
+
+    def save_tool_call_decorator(obj, func_name):
+        func = getattr(obj, func_name)
+
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            func(*args, **kwargs)
+            timestamp, tool_name, tool_args = obj.tool_calls[-1]
+            args_str = ", ".join(f"{k}={v}" for k, v in tool_args.items())
+            with open(log_file, "a", encoding="utf-8") as f:
+                f.write(f"{timestamp} [Tool Call] {tool_name}({args_str})\n")
+
+        return wrapper
+
+    def save_report_section_decorator(obj, func_name):
+        func = getattr(obj, func_name)
+
+        @wraps(func)
+        def wrapper(section_name, content):
+            func(section_name, content)
+            if section_name in obj.report_sections and obj.report_sections[section_name] is not None:
+                section_content = obj.report_sections[section_name]
+                if section_content:
+                    file_name = f"{section_name}.md"
+                    text = (
+                        "\n".join(str(item) for item in section_content)
+                        if isinstance(section_content, list)
+                        else section_content
+                    )
+                    with open(report_dir / file_name, "w", encoding="utf-8") as f:
+                        f.write(text)
+
+        return wrapper
+
+    message_buffer.add_message = save_message_decorator(message_buffer, "add_message")
+    message_buffer.add_tool_call = save_tool_call_decorator(message_buffer, "add_tool_call")
+    message_buffer.update_report_section = save_report_section_decorator(
+        message_buffer, "update_report_section"
+    )
+
+    message_buffer.add_message("System", f"Selected ticker: {ticker}")
+    message_buffer.add_message("System", f"Analysis date: {trade_date}")
+    message_buffer.add_message("System", f"Selected analysts: {', '.join(analysts)}")
+
+    if analysts:
+        message_buffer.update_agent_status(ANALYST_AGENT_NAMES[analysts[0]], "in_progress")
+
+    init_agent_state = graph.propagator.create_initial_state(ticker, trade_date)
+    graph_args = graph.propagator.get_graph_args(callbacks=[stats_handler])
+
+    trace = []
+    for chunk in graph.graph.stream(init_agent_state, **graph_args):
+        for message in chunk.get("messages", []):
+            msg_id = getattr(message, "id", None)
+            if msg_id is not None:
+                if msg_id in message_buffer._processed_message_ids:
+                    continue
+                message_buffer._processed_message_ids.add(msg_id)
+
+            msg_type, content = classify_message_type(message)
+            if content and content.strip():
+                message_buffer.add_message(msg_type, content)
+
+            if hasattr(message, "tool_calls") and message.tool_calls:
+                for tool_call in message.tool_calls:
+                    if isinstance(tool_call, dict):
+                        message_buffer.add_tool_call(tool_call["name"], tool_call["args"])
+                    else:
+                        message_buffer.add_tool_call(tool_call.name, tool_call.args)
+
+        update_analyst_statuses(message_buffer, chunk)
+
+        if chunk.get("investment_debate_state"):
+            debate_state = chunk["investment_debate_state"]
+            bull_hist = debate_state.get("bull_history", "").strip()
+            bear_hist = debate_state.get("bear_history", "").strip()
+            judge = debate_state.get("judge_decision", "").strip()
+
+            if bull_hist or bear_hist:
+                update_research_team_status("in_progress")
+            if bull_hist:
+                message_buffer.update_report_section(
+                    "investment_plan", f"### Bull Researcher Analysis\n{bull_hist}"
+                )
+            if bear_hist:
+                message_buffer.update_report_section(
+                    "investment_plan", f"### Bear Researcher Analysis\n{bear_hist}"
+                )
+            if judge:
+                message_buffer.update_report_section(
+                    "investment_plan", f"### Research Manager Decision\n{judge}"
+                )
+                update_research_team_status("completed")
+                message_buffer.update_agent_status("Trader", "in_progress")
+
+        if chunk.get("trader_investment_plan"):
+            message_buffer.update_report_section("trader_investment_plan", chunk["trader_investment_plan"])
+            if message_buffer.agent_status.get("Trader") != "completed":
+                message_buffer.update_agent_status("Trader", "completed")
+                message_buffer.update_agent_status("Aggressive Analyst", "in_progress")
+
+        if chunk.get("risk_debate_state"):
+            risk_state = chunk["risk_debate_state"]
+            agg_hist = risk_state.get("aggressive_history", "").strip()
+            con_hist = risk_state.get("conservative_history", "").strip()
+            neu_hist = risk_state.get("neutral_history", "").strip()
+            judge = risk_state.get("judge_decision", "").strip()
+
+            if agg_hist:
+                if message_buffer.agent_status.get("Aggressive Analyst") != "completed":
+                    message_buffer.update_agent_status("Aggressive Analyst", "in_progress")
+                message_buffer.update_report_section(
+                    "final_trade_decision", f"### Aggressive Analyst Analysis\n{agg_hist}"
+                )
+            if con_hist:
+                if message_buffer.agent_status.get("Conservative Analyst") != "completed":
+                    message_buffer.update_agent_status("Conservative Analyst", "in_progress")
+                message_buffer.update_report_section(
+                    "final_trade_decision", f"### Conservative Analyst Analysis\n{con_hist}"
+                )
+            if neu_hist:
+                if message_buffer.agent_status.get("Neutral Analyst") != "completed":
+                    message_buffer.update_agent_status("Neutral Analyst", "in_progress")
+                message_buffer.update_report_section(
+                    "final_trade_decision", f"### Neutral Analyst Analysis\n{neu_hist}"
+                )
+            if judge:
+                if message_buffer.agent_status.get("Portfolio Manager") != "completed":
+                    message_buffer.update_agent_status("Portfolio Manager", "in_progress")
+                    message_buffer.update_report_section(
+                        "final_trade_decision", f"### Portfolio Manager Decision\n{judge}"
+                    )
+                    message_buffer.update_agent_status("Aggressive Analyst", "completed")
+                    message_buffer.update_agent_status("Conservative Analyst", "completed")
+                    message_buffer.update_agent_status("Neutral Analyst", "completed")
+                    message_buffer.update_agent_status("Portfolio Manager", "completed")
+
+        trace.append(chunk)
+
+    if not trace:
+        raise RuntimeError("TradingAgents graph produced no chunks.")
+
+    final_state = trace[-1]
+    decision = graph.process_signal(final_state["final_trade_decision"])
+
+    for agent in message_buffer.agent_status:
+        message_buffer.update_agent_status(agent, "completed")
+
+    message_buffer.add_message("System", f"Completed analysis for {trade_date}")
+
+    for section in message_buffer.report_sections.keys():
+        if section in final_state:
+            message_buffer.update_report_section(section, final_state[section])
+
+    report_file = save_report_to_disk(final_state, ticker, report_dir)
+
+    return final_state, decision, stats_handler.get_stats(), report_file, log_file
+
+
 def save_outputs(payload: dict[str, Any], report_dir: Path, final_state: dict[str, Any] | None = None) -> None:
     report_dir.mkdir(parents=True, exist_ok=True)
     (report_dir / "summary.json").write_text(
@@ -234,13 +454,7 @@ def save_outputs(payload: dict[str, Any], report_dir: Path, final_state: dict[st
         encoding="utf-8",
     )
 
-    if final_state is not None:
-        # Reuse the repository CLI's own report writer so OpenClaw report
-        # structure/content stays aligned with `tradingagents analyze` saves.
-        from cli.main import save_report_to_disk
-
-        save_report_to_disk(final_state, payload["ticker"], report_dir)
-    else:
+    if final_state is None:
         (report_dir / "complete_report.md").write_text(render_markdown(payload), encoding="utf-8")
 
     (report_dir / "chat_summary.md").write_text(render_summary(payload), encoding="utf-8")
@@ -257,7 +471,7 @@ def main() -> int:
     config = build_config(args)
 
     safe_ticker = safe_ticker_component(ticker)
-    report_dir = Path(config["results_dir"]) / safe_ticker / trade_date / "openclaw_report"
+    report_dir = Path(config["results_dir"]) / safe_ticker / trade_date / "reports"
 
     if args.dry_run:
         dry_payload = {
@@ -274,22 +488,22 @@ def main() -> int:
             "memory_log_path": config["memory_log_path"],
             "checkpoint": config["checkpoint_enabled"],
             "report_path": str(report_dir / "complete_report.md"),
+            "message_log_path": str(Path(config["results_dir"]) / safe_ticker / trade_date / "message_tool.log"),
         }
         print(json.dumps(dry_payload, ensure_ascii=False, indent=2))
         return 0
 
-    from tradingagents.graph.trading_graph import TradingAgentsGraph
+    if args.clear_checkpoints:
+        from tradingagents.graph.checkpointer import clear_all_checkpoints
 
-    from cli.stats_handler import StatsCallbackHandler
+        clear_all_checkpoints(config["data_cache_dir"])
 
-    stats_handler = StatsCallbackHandler()
-    graph = TradingAgentsGraph(
-        selected_analysts=analysts,
-        debug=args.debug,
+    final_state, decision, stats, report_file, log_file = run_cli_equivalent_analysis(
+        ticker=ticker,
+        trade_date=trade_date,
+        analysts=analysts,
         config=config,
-        callbacks=[stats_handler],
     )
-    final_state, decision = graph.propagate(ticker, trade_date)
 
     payload = {
         "ticker": ticker,
@@ -300,8 +514,9 @@ def main() -> int:
         "deep_model": config["deep_think_llm"],
         "research_depth": args.research_depth,
         "output_language": config["output_language"],
-        "report_path": str(report_dir / "complete_report.md"),
-        "stats": stats_handler.get_stats(),
+        "report_path": str(report_file),
+        "message_log_path": str(log_file),
+        "stats": stats,
         "state": compact_state(final_state),
     }
     save_outputs(payload, report_dir, final_state=final_state)
