@@ -227,13 +227,22 @@ def render_markdown(payload: dict[str, Any]) -> str:
     return "\n".join(sections).rstrip() + "\n"
 
 
-def save_outputs(payload: dict[str, Any], report_dir: Path) -> None:
+def save_outputs(payload: dict[str, Any], report_dir: Path, final_state: dict[str, Any] | None = None) -> None:
     report_dir.mkdir(parents=True, exist_ok=True)
     (report_dir / "summary.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2),
         encoding="utf-8",
     )
-    (report_dir / "complete_report.md").write_text(render_markdown(payload), encoding="utf-8")
+
+    if final_state is not None:
+        # Reuse the repository CLI's own report writer so OpenClaw report
+        # structure/content stays aligned with `tradingagents analyze` saves.
+        from cli.main import save_report_to_disk
+
+        save_report_to_disk(final_state, payload["ticker"], report_dir)
+    else:
+        (report_dir / "complete_report.md").write_text(render_markdown(payload), encoding="utf-8")
+
     (report_dir / "chat_summary.md").write_text(render_summary(payload), encoding="utf-8")
 
 
@@ -271,10 +280,14 @@ def main() -> int:
 
     from tradingagents.graph.trading_graph import TradingAgentsGraph
 
+    from cli.stats_handler import StatsCallbackHandler
+
+    stats_handler = StatsCallbackHandler()
     graph = TradingAgentsGraph(
         selected_analysts=analysts,
         debug=args.debug,
         config=config,
+        callbacks=[stats_handler],
     )
     final_state, decision = graph.propagate(ticker, trade_date)
 
@@ -288,9 +301,10 @@ def main() -> int:
         "research_depth": args.research_depth,
         "output_language": config["output_language"],
         "report_path": str(report_dir / "complete_report.md"),
+        "stats": stats_handler.get_stats(),
         "state": compact_state(final_state),
     }
-    save_outputs(payload, report_dir)
+    save_outputs(payload, report_dir, final_state=final_state)
 
     if args.format == "json":
         print(json.dumps(payload, ensure_ascii=False, indent=2))

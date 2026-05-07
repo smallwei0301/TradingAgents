@@ -49,6 +49,10 @@ Output reports are written to:
 ~/.tradingagents/logs/<TICKER>/<DATE>/openclaw_report/
 ```
 
+`complete_report.md` and section folders are generated with the repository CLI's
+`save_report_to_disk()` function to keep the saved report format aligned with
+`tradingagents analyze`.
+
 The adapter supports:
 
 - `--format markdown|json|summary` (`summary` is best for chat replies)
