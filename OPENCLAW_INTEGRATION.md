@@ -7,7 +7,9 @@ chat commands, and cron jobs to run stock analysis reliably.
 ## Files
 
 - `scripts/openclaw_analyze.py` — OpenClaw adapter entrypoint
+- `scripts/openclaw_analyze.sh` — stable wrapper that prefers the repo-local `.venv`
 - `.env.openclaw.example` — environment/secrets template
+- `OPENCLAW_TELEGRAM.md` — natural-language Telegram trigger and ticker alias guide
 
 ## Local setup
 
