@@ -1,0 +1,226 @@
+{
+  "aliases": {
+    "2317.TW": {
+      "canonical": "鴻海",
+      "source": "seed",
+      "ticker": "2317.TW",
+      "updated_at": "2026-05-07"
+    },
+    "2330.TW": {
+      "canonical": "台積電",
+      "source": "seed",
+      "ticker": "2330.TW",
+      "updated_at": "2026-05-07"
+    },
+    "2454.TW": {
+      "canonical": "聯發科",
+      "source": "seed",
+      "ticker": "2454.TW",
+      "updated_at": "2026-05-07"
+    },
+    "3711.TW": {
+      "canonical": "日月光投控",
+      "source": "seed",
+      "ticker": "3711.TW",
+      "updated_at": "2026-05-07"
+    },
+    "AAPL": {
+      "canonical": "Apple",
+      "source": "seed",
+      "ticker": "AAPL",
+      "updated_at": "2026-05-07"
+    },
+    "AMZN": {
+      "canonical": "Amazon",
+      "source": "seed",
+      "ticker": "AMZN",
+      "updated_at": "2026-05-07"
+    },
+    "ASE": {
+      "canonical": "日月光投控",
+      "source": "seed",
+      "ticker": "3711.TW",
+      "updated_at": "2026-05-07"
+    },
+    "Alphabet": {
+      "canonical": "Alphabet",
+      "source": "seed",
+      "ticker": "GOOGL",
+      "updated_at": "2026-05-07"
+    },
+    "Amazon": {
+      "canonical": "Amazon",
+      "source": "seed",
+      "ticker": "AMZN",
+      "updated_at": "2026-05-07"
+    },
+    "Apple": {
+      "canonical": "Apple",
+      "source": "seed",
+      "ticker": "AAPL",
+      "updated_at": "2026-05-07"
+    },
+    "Facebook": {
+      "canonical": "Meta",
+      "source": "seed",
+      "ticker": "META",
+      "updated_at": "2026-05-07"
+    },
+    "Foxconn": {
+      "canonical": "鴻海",
+      "source": "seed",
+      "ticker": "2317.TW",
+      "updated_at": "2026-05-07"
+    },
+    "GOOGL": {
+      "canonical": "Alphabet",
+      "source": "seed",
+      "ticker": "GOOGL",
+      "updated_at": "2026-05-07"
+    },
+    "Google": {
+      "canonical": "Alphabet",
+      "source": "seed",
+      "ticker": "GOOGL",
+      "updated_at": "2026-05-07"
+    },
+    "META": {
+      "canonical": "Meta",
+      "source": "seed",
+      "ticker": "META",
+      "updated_at": "2026-05-07"
+    },
+    "MSFT": {
+      "canonical": "Microsoft",
+      "source": "seed",
+      "ticker": "MSFT",
+      "updated_at": "2026-05-07"
+    },
+    "MTK": {
+      "canonical": "聯發科",
+      "source": "seed",
+      "ticker": "2454.TW",
+      "updated_at": "2026-05-07"
+    },
+    "MediaTek": {
+      "canonical": "聯發科",
+      "source": "seed",
+      "ticker": "2454.TW",
+      "updated_at": "2026-05-07"
+    },
+    "Meta": {
+      "canonical": "Meta",
+      "source": "seed",
+      "ticker": "META",
+      "updated_at": "2026-05-07"
+    },
+    "Microsoft": {
+      "canonical": "Microsoft",
+      "source": "seed",
+      "ticker": "MSFT",
+      "updated_at": "2026-05-07"
+    },
+    "NVDA": {
+      "canonical": "NVIDIA",
+      "source": "seed",
+      "ticker": "NVDA",
+      "updated_at": "2026-05-07"
+    },
+    "NVIDIA": {
+      "canonical": "NVIDIA",
+      "source": "seed",
+      "ticker": "NVDA",
+      "updated_at": "2026-05-07"
+    },
+    "TSLA": {
+      "canonical": "Tesla",
+      "source": "seed",
+      "ticker": "TSLA",
+      "updated_at": "2026-05-07"
+    },
+    "TSMC": {
+      "canonical": "台積電",
+      "source": "seed",
+      "ticker": "2330.TW",
+      "updated_at": "2026-05-07"
+    },
+    "Tesla": {
+      "canonical": "Tesla",
+      "source": "seed",
+      "ticker": "TSLA",
+      "updated_at": "2026-05-07"
+    },
+    "亞馬遜": {
+      "canonical": "Amazon",
+      "source": "seed",
+      "ticker": "AMZN",
+      "updated_at": "2026-05-07"
+    },
+    "台積": {
+      "canonical": "台積電",
+      "source": "seed",
+      "ticker": "2330.TW",
+      "updated_at": "2026-05-07"
+    },
+    "台積電": {
+      "canonical": "台積電",
+      "source": "seed",
+      "ticker": "2330.TW",
+      "updated_at": "2026-05-07"
+    },
+    "富士康": {
+      "canonical": "鴻海",
+      "source": "seed",
+      "ticker": "2317.TW",
+      "updated_at": "2026-05-07"
+    },
+    "微軟": {
+      "canonical": "Microsoft",
+      "source": "seed",
+      "ticker": "MSFT",
+      "updated_at": "2026-05-07"
+    },
+    "日月光": {
+      "canonical": "日月光投控",
+      "source": "seed",
+      "ticker": "3711.TW",
+      "updated_at": "2026-05-07"
+    },
+    "日月光投控": {
+      "canonical": "日月光投控",
+      "source": "seed",
+      "ticker": "3711.TW",
+      "updated_at": "2026-05-07"
+    },
+    "特斯拉": {
+      "canonical": "Tesla",
+      "source": "seed",
+      "ticker": "TSLA",
+      "updated_at": "2026-05-07"
+    },
+    "聯發科": {
+      "canonical": "聯發科",
+      "source": "seed",
+      "ticker": "2454.TW",
+      "updated_at": "2026-05-07"
+    },
+    "蘋果": {
+      "canonical": "Apple",
+      "source": "seed",
+      "ticker": "AAPL",
+      "updated_at": "2026-05-07"
+    },
+    "輝達": {
+      "canonical": "NVIDIA",
+      "source": "seed",
+      "ticker": "NVDA",
+      "updated_at": "2026-05-07"
+    },
+    "鴻海": {
+      "canonical": "鴻海",
+      "source": "seed",
+      "ticker": "2317.TW",
+      "updated_at": "2026-05-07"
+    }
+  }
+}
