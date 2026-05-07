@@ -1,0 +1,48 @@
+name: OpenClaw smoke
+
+on:
+  pull_request:
+    paths:
+      - "scripts/openclaw_*.py"
+      - "scripts/openclaw_*.sh"
+      - "OPENCLAW_*.md"
+      - "OPENCLAW_ALIASES.json"
+      - "tests/test_openclaw_*.py"
+      - ".github/workflows/openclaw-smoke.yml"
+  push:
+    branches: [main]
+    paths:
+      - "scripts/openclaw_*.py"
+      - "scripts/openclaw_*.sh"
+      - "OPENCLAW_*.md"
+      - "OPENCLAW_ALIASES.json"
+      - "tests/test_openclaw_*.py"
+      - ".github/workflows/openclaw-smoke.yml"
+
+jobs:
+  openclaw-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Compile OpenClaw scripts
+        run: |
+          python -m py_compile scripts/openclaw_alias.py scripts/openclaw_analyze.py scripts/openclaw_chat_analyze.py
+
+      - name: Run OpenClaw unit tests
+        run: |
+          python -m pytest tests/test_openclaw_alias.py tests/test_openclaw_chat_analyze.py -q
+
+      - name: Dry-run natural-language analysis
+        run: |
+          scripts/openclaw_chat_analyze.py "分析 日月光投控" --date 2026-05-07 --dry-run
