@@ -31,9 +31,10 @@ python -m py_compile scripts/openclaw_analyze.py
 
 ## Run analysis
 
+Prefer the wrapper; it automatically uses `.venv/bin/python` when available:
+
 ```bash
-. .venv/bin/activate
-python scripts/openclaw_analyze.py \
+scripts/openclaw_analyze.sh \
   --ticker NVDA \
   --date 2026-05-07 \
   --provider openai \
